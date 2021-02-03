@@ -112,11 +112,19 @@ def columnExtrapolate (R, formattedData, num_new_cols, params,
 def error_analysis (extrapolated_data, true_data):
 	"""
 		Inputs:
-			extrapolated_data (a 2D Numpy array):
-			true_data (a 2D Numpy array)
+			extrapolated_data (a 2D Numpy array): the matrix created with the method columnExtrapolate
+			true_data (a 2D Numpy array): the known matrix that corresponds to what is predicted
+                with the extrapolated_data matrix
+        Returns:
+            None
+        Compares the matrix generated with the function columnExtrapolate to the known corresponding
+        matrix.  Prints the mean squared error score to the console and produces a matrix plot representing
+        the difference between the true result and the extrapolated result.
 	"""
+    # Calculate and print the MSE score
 	print ("MSE between true matrix and extrapolated matrix:")
 	print(np.mean((true_data.flatten() - extrapolated_data.flatten())**2))
+    # Produce the matrix plot showing the difference.  Add a color bar to show scale.
 	plt.matshow(true_data - extrapolated_data)
 	plt.colorbar()
 	plt.show()
@@ -124,19 +132,25 @@ def error_analysis (extrapolated_data, true_data):
 ##############################
 # MAIN PROGRAM (TO BE DELETED AFTER TESTING PHASE)
 ##############################
+# Create training and test data matrices
 X = np.arange(0, 4, 0.1)
 Y = np.arange(0, 4, 0.25)
 Y_long = np.arange(0, 10, 0.25)
+# Training Matrix
 Z = np.zeros((len(X), len(Y)))
-Z_long = np.zeros((len(X), len(Y_long)))
 for i in range (len(X)):
 	for j in range(len(Y)):
 		Z[i][j] = X[i]**2 + Y[j]**2 
+# Test Matrix        
+Z_long = np.zeros((len(X), len(Y_long)))        
 for i in range (len(X)):
 	for j in range(len(Y_long)):
-		Z_long[i][j] = X[i]**2 + Y_long[j]**2 		
-print(Z.shape)
-print(Z_long.shape)
+		Z_long[i][j] = X[i]**2 + Y_long[j]**2 	
+# Print the shapes of the two matrices to terminal        
+print("Size of training matrix: ", Z.shape)
+print("Size of test matrix: ", Z_long.shape)
+# Make the regression instance, in this case an instance of the linear regressop class
 LR = LinearRegressionAnalysis()
+# Generate the extrapolated matrix and compare it to the true matrix
 Z_predict = columnExtrapolate(LR, Z, len(Z_long), [True, True], False, [])
 error_analysis(Z_predict, Z_long)
