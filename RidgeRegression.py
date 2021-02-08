@@ -28,7 +28,7 @@ import numpy as np
 # Used for timing the running of codes
 import time
 # Ridge Methods
-from sklearn.linear_model.ridge import Ridge
+from sklearn.linear_model import Ridge
 # For plotting
 import matplotlib.pyplot as plt
 # Prevents extraneous printing of messages during a grid search
