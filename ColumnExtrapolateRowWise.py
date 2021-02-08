@@ -7,6 +7,10 @@
 #
 # Extends the number of columns in a matrix using extrapolation with
 # regression algorithms and sequential data formatting.
+#
+# TO DO
+# Some type of type conversions error when doing the hyperparameter tuning
+# option -- Need to look into this!
 ##################################################
 
 ##############################
@@ -39,7 +43,9 @@ def formatData (filename, delimiter):
             filename (a string): a file name representing the file where
                 the data is stored.  The import code expects the file to 
                 contain only the matrix elements with columns separated by
-                a tab and rows separated by a new line.
+                a set delimiter and rows separated by a new line.
+            delimiter (a string): the delimiter between the columns in the 
+                text file    
         Returns:
             formattedData (a 2D numpy array): a 2D array storing the matrix. 
                 The columns of the matrix can be accessed via formattedData[:,i],
@@ -48,14 +54,18 @@ def formatData (filename, delimiter):
         codes.  Note, this does not format the data in an unusual way.  Many 
         matrices in Python are formatted using this format.
     """
+    # Lists to hold the data
     formattedData = []
     val = []
+    # Get every row from the file and store them in order in val
     with open(filename, 'r') as f:
         reader = csv.reader(f, dialect='excel', delimiter=delimiter)
         for row in reader:
-            val.append(row) 
+            val.append(row)
+    # Convert all if the elements to floats and store in formattedData 
     for row in range(len(val)):
         formattedData.append([float(i) for i in val[row]])
+    # Return the formatted matrix as an array
     return np.asarray(formattedData)
 
 
@@ -97,7 +107,9 @@ def columnExtrapolate (R, formattedData, num_new_cols, params,
         # Return the set of parameters that yields the lowest extrapolated MSE
         # score
         params = R.tune_serial_seq (tuning_params, X_train, y_train,
-            len(formattedData[0])-4, formattedData[0], True, False)
+            len(formattedData[0])-2, formattedData[0], True, False)
+        print("Optimized Parameters Are:")
+        print(params)
 
     # Create a 2D array of zeros to hold the new, extrapolated matrix   
     extrapolated_data = np.zeros((len(formattedData), num_new_cols))
@@ -114,6 +126,7 @@ def columnExtrapolate (R, formattedData, num_new_cols, params,
         extrapolated_data[i] = new_row
     # Return the extrapolated matrix    
     return extrapolated_data
+
 
 ##############################
 # ERROR ANALYSIS
@@ -142,8 +155,29 @@ def error_analysis (extrapolated_data, true_data):
 # PLOT MATRIX SAME XDATA
 ##############################
 def plot_matrix_same_xdata (matrix, xdata, labels, graph_start = 0):
+    """
+        Inputs:
+            matrix (a 2D numpy array): a matrix where each column represents
+                the data from one function.  The matrices can come from the 
+                formatData method or the columnExtrapolate method.
+            xdata (a 1D numpy array or list): the values for the x axis of the
+                graph.  Assumed to be the same for all columns of the matrix.
+                The length of xdata should be the same as the number of rows in
+                matrix.
+            labels (a list of strings): the strings are the labels for the graph 
+                legend in order.  The length of labels should be the same as the 
+                number of columns in matrix.
+            graph_start (an int, optional): Tells which column of matrix to start
+                the graphing at.  Default value is zero.
+        Returns:
+            None.
+        Plots the columns of a given matrix as functions.  Labels each column with
+        the given label and includes a legend on the graph.            
+    """
+    # Make one plot per column, include a label for each plot
     for i in range(graph_start, len(labels)):
         plt.plot(xdata, matrix[:,i], label=labels[i])
+    # Show the legend and the graph    
     plt.legend()
     plt.show()
 
@@ -151,6 +185,15 @@ def plot_matrix_same_xdata (matrix, xdata, labels, graph_start = 0):
 # PLOT MATRIX MATSHOW
 ##############################    
 def plot_matrix_matshow (matrix):
+    """
+        Inputs:
+            matrix (a 2D numpy array): a 2D numpy array representing a matrix
+        Returns:
+            None.
+        Plots a matrix using the matplotlib matshow function.  Includes a color bar
+        to show the scale of the elements.    
+    """  
+    # Plot the matrix using matshow, include a color bar, and show the plot
     plt.matshow(matrix)
     plt.colorbar()
     plt.show()
@@ -159,28 +202,57 @@ def plot_matrix_matshow (matrix):
 # PLOT GROUND STATE COMPARISON
 ##############################
 def plot_ground_state_comparison (xdata, num_total_cols, extrapolated_data, true_data):
+    """
+        Inputs:
+            xdata (a 1D numpy array or list): the values to be used as the x axis for 
+                plotting
+            num_total_cols (an int): the total number of columns in both the extrapolated_data
+                and true_data matrices
+            extrapolated_data (a 2D numpy array): the extrapolated matrix produced using 
+                columnExtrapolate.
+            true_data (a 2D numpy array): the true or given matrix of data imported from the
+                file
+        Returns:
+            None.
+         Plots the ground state (assumed to be the smallest element) from each column from an extrapolated
+         matrix and for a true/given matrix.  Also prints the MSE between the two data sets.   
+    """
+    # Set up lists to hold the ground states
     extrapolated_ground_states = []
     true_ground_states = []
+    # Iterate through each column of the extrapolated and true matrix, extract the ground state from each column,
+    # and append it to the correct list
     for i in range(num_total_cols):
         extrapolated_ground_states.append(np.amin(extrapolated_data[:,i]))
         true_ground_states.append(np.amin(true_data[:,i]))
+    # Calculate the MSE between the two data sets
     print("MSE between extrapolated and true ground states:")
     print(mse(np.asarray(extrapolated_ground_states), np.asarray(true_ground_states)))
+    # Plot each data set with a label, add a legend to the graph, and show the graph
     plt.scatter(xdata, extrapolated_ground_states, label='Extrapolated')
     plt.scatter(xdata, true_ground_states, label='True')
-    plt.axvspan(0, 14, alpha=0.25)
     plt.legend()
     plt.show()
 
 ##############################
 # MAIN PROGRAM (TO BE DELETED AFTER TESTING PHASE)
 ##############################
+# Import the data from the specified file name
 filename = '4He_E_Nmax_UVeff.csv'
 data = formatData(filename, ',')
+# Set up the training and the test data
 data_train = data[:,0:7]
 data_predict = data
+
+# Perform the columm extrapolate with a linear regression algorithm
 LR = LinearRegressionAnalysis()
 data_estimate = columnExtrapolate(LR, data_train, 9, [True, True], False, [])
+
+# Worse than Linear Regression
+#R = RidgeRegressionAnalysis()
+#data_estimate = columnExtrapolate(R, data_train, 9, [], True, [[True, False], np.logspace(-20, 2, 500).tolist(), ['auto', 'sag', 'saga']])
+
+# Do various analysis on the results of the extrapolation.
 error_analysis(data_estimate, data_predict)
 xdata = [750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500]
 labels = ['Nmax 4','Nmax 6','Nmax 8','Nmax 10','Nmax 12','Nmax 14','Nmax 16','Nmax 18','Nmax 20']
@@ -188,6 +260,8 @@ plot_matrix_same_xdata(data_estimate, xdata, labels)
 plot_matrix_matshow(data_estimate)
 xdata = [4, 6, 8, 10, 12, 14, 16, 18, 20]
 plot_ground_state_comparison(xdata, 9, data_estimate, data_predict)
+
+
 
 
 # Create training and test data matrices
